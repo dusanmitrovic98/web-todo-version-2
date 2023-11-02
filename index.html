@@ -45,6 +45,9 @@
             flex: 1;
             display: flex;
             align-items: center;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
         }
 
         li button {
@@ -59,6 +62,7 @@
 
         .task {
             color: grey;
+            margin-left: 10px;
         }
 
         .add-button {
@@ -84,7 +88,7 @@
         }
 
         .import-button {
-            background: #3498db;
+            background: #61bd4f;
             color: white;
         }
     </style>
@@ -96,3 +100,78 @@
         <input type="text" id="task" placeholder="Enter a new task" onkeydown="if(event.key === 'Enter') addTask()">
         <button class="add-button" onclick="addTask()">Add (Enter)</button>
         <button class="add-button" onclick="exportTasks()">Export</button>
+        <label for="import" class="add-button import-button">Import</label>
+        <input type="file" id="import" style="display: none" accept=".json">
+        <button class="add-button" onclick="clearTasks()">Clear All</button>
+        <ul id="taskList">
+        </ul>
+    </div>
+    <script>
+        const taskList = document.getElementById("taskList");
+
+        function addTask() {
+            const taskText = document.getElementById("task").value;
+            if (taskText) {
+                const li = document.createElement("li");
+                li.innerHTML = `<span><button class="complete-button" onclick="completeTask(this)">✓</button> <span class="task">${taskText}</span></span><button onclick="removeTask(this)">Delete</button>`;
+                taskList.appendChild(li);
+                document.getElementById("task").value = "";
+            }
+        }
+
+        function removeTask(button) {
+            const listItem = button.parentNode;
+            taskList.removeChild(listItem);
+        }
+
+        function completeTask(button) {
+            const listItem = button.parentNode.parentNode;
+            listItem.classList.toggle("completed");
+        }
+
+        function clearTasks() {
+            const taskList = document.getElementById("taskList");
+            while (taskList.firstChild) {
+                taskList.removeChild(taskList.firstChild);
+            }
+        }
+
+        function exportTasks() {
+            const tasks = [];
+            document.querySelectorAll(".task").forEach((task) => {
+                const completed = task.parentElement.parentElement.classList.contains("completed");
+                tasks.push({ text: task.textContent, completed });
+            });
+
+            const json = JSON.stringify(tasks, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tasks.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        document.getElementById("import").addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                const tasks = JSON.parse(e.target.result);
+                for (const task of tasks) {
+                    const li = document.createElement("li");
+                    li.innerHTML = `<span><button class="complete-button" onclick="completeTask(this)">✓</button> <span class="task">${task.text}</span></span><button onclick="removeTask(this)">Delete</button>`;
+                    if (task.completed) {
+                        li.classList.add("completed");
+                    }
+                    taskList.appendChild(li);
+                }
+            };
+
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+
+</html>
